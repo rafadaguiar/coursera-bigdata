@@ -682,4 +682,6 @@ def main():
 
 
 if __name__ == "__main__":
+    starttime = time.time()
     main()
+    print (time.time() - starttime)/60, "min"
