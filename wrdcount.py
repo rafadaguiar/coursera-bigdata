@@ -30,10 +30,17 @@ def final(key, value):
 
 
 def mapfn(key, value):
+    w = {}
     for line in value.splitlines():
         for word in line.split():
-            yield word.lower(), 1
+            word = word.lower()
+            if word in w.keys():
+                w.update({word: w.get(word)+1})
+            else:
+                w[word] = 1
+    for k in w.keys():
+        yield k, w[k]
 
 
 def reducefn(key, value):
-    return key, len(value)
+    return key, sum(value)
