@@ -19,9 +19,9 @@ import socket
 import threading
 import tempfile
 import time
-import traceback
+#import traceback
 import UserDict
-
+import sys
 
 __version__ = "0.1"
 
@@ -33,21 +33,19 @@ except ImportError:
     except ImportError:
         del sys.modules[__name__]
 
+
 class Lock(object):
     """Context-able (with-block) wrapper for a lock.
     """
     def __init__(self):
         self.__lock = threading.Lock()
 
-
     def __enter__(self):
         self.__lock.acquire()
         return self
-    
 
     def __exit__(self, type, value, traceback):
         self.__lock.release()
-        
 
 
 class Task(object):
@@ -56,7 +54,6 @@ class Task(object):
     def __init__(self, key, value):
         self.key = key
         self.value = value
-
 
     def __eq__(self, other):
         return self.key == other.key
@@ -71,10 +68,9 @@ class WorkQueue(object):
         self.tasks = tasks
         self.unassigned = iter(tasks)
         self.unassigned_lock = Lock()
-        self.pending = [ ]
+        self.pending = []
         self.pending_lock = Lock()
         self.retry = retry
-
 
     def get_task(self):
         with self.unassigned_lock:
@@ -99,17 +95,14 @@ class WorkQueue(object):
                     self.pending.append(task)
                 return task.key, task.value
 
-
     def __iter__(self):
         return self
-
 
     def next(self):
         task = self.get_task()
         if not task:
             raise StopIteration("No more tasks")
         return task
-
 
     def mark_completed(self, key):
         task = Task(key, None)
@@ -118,7 +111,6 @@ class WorkQueue(object):
                 self.pending.remove(task)
             except ValueError:
                 pass
-
 
     def is_completed(self):
         with contextlib.nested(self.unassigned_lock, self.pending_lock):
@@ -130,7 +122,6 @@ class WorkQueue(object):
                 return len(self.pending) == 0
             else:
                 return False
-            
 
 
 class PersistantDict(UserDict.DictMixin):
@@ -146,42 +137,34 @@ class PersistantDict(UserDict.DictMixin):
         self._shelve = shelve.BsdDbShelf(self._db, protocol=2,
                                          writeback=True)
 
-
     def __del__(self):
         self._shelve.close()
         self._db.close()
-        
 
     def __delitem__(self, key):
         pkey = pickle.dumps(key)
         self._shelve.__delitem__(pkey)
 
-
     def __getitem__(self, key):
         pkey = pickle.dumps(key)
         return self._shelve.__getitem__(pkey)
-
 
     def __setitem__(self, key, value):
         pkey = pickle.dumps(key)
         self._shelve.__setitem__(pkey, value)
         self._shelve.sync()
 
-
     def keys(self):
         return (pickle.loads(pkey) for pkey in self._shelve.keys())
 
-
     def sync(self):
         self._shelve.sync()
-
 
     def append(self, key, value):
         pkey = pickle.dumps(key)
         self._shelve.setdefault(pkey, []).append(value)
         self._shelve.sync()
-        
-    
+
 
 class TaskServer(object):
     """Generic task server."""
@@ -199,11 +182,9 @@ class TaskServer(object):
         self.phase = "map"
         self.lock = Lock()
 
-
     def __del__(self):
         del self.intermediate
         del self.final
-
 
     def next_task(self):
         """Get the next task from the queue.
@@ -217,7 +198,6 @@ class TaskServer(object):
             self.logging.debug("Next task: %s", key)
             return self.phase, key, value
 
-    
     def handle_map_results(self, key, value):
         """Store the results of a map task.
         """
@@ -226,7 +206,6 @@ class TaskServer(object):
             i_key, i_value = value
             self.intermediate.append(i_key, i_value)
             self.intermediate.sync()
-
 
     def handle_map_completed(self, key):
         """Mark a map task as completed.
@@ -238,7 +217,6 @@ class TaskServer(object):
                 self.logging.info("Map phase complete")
                 self.process_intermediate()
 
-
     def process_intermediate(self):
         """Process the intermediate map results and prepare for the reduce
         phase.
@@ -248,14 +226,12 @@ class TaskServer(object):
         self.handle_completed = self.handle_reduce_completed
         self.phase = "reduce"
 
-
     def handle_reduce_results(self, key, value):
         """Store the results of a reduce task.
         """
         with self.lock:
             self.logging.debug("Reduce results: %s", value)
             self.final[key] = value
-
 
     def handle_reduce_completed(self, key):
         """Mark a reduce task as completed.
@@ -267,12 +243,10 @@ class TaskServer(object):
                 self.logging.info("Reduce phase complete")
                 self.stop()
 
-                
     def start(self):
         """Start the server.
         """
         pass
-
 
     def stop(self):
         """Stop the server.
@@ -280,23 +254,21 @@ class TaskServer(object):
         pass
 
 
-    
 class TaskClient(object):
     """Generic task client."""
     def __init__(self, **options):
         self.logging = logging.getLogger(self.__class__.__name__)
         self.id = hash(socket.gethostname())
         self.logging.info("id: %s", self.id)
-        
 
     def start(self, mapfn, reducefn):
         """Start the task client.
         """
         pass
 
-        
-    
+
 DEFAULT_CHAT_PORT = 18273
+
 
 class ChatProtocol(asynchat.async_chat):
     """Base class for the simple Chat protocol.
@@ -307,7 +279,7 @@ class ChatProtocol(asynchat.async_chat):
     def __init__(self):
         self.set_terminator("\n")
         self.buffer = []
-    
+
     def collect_incoming_data(self, data):
         self.buffer.append(data)
 
@@ -315,7 +287,7 @@ class ChatProtocol(asynchat.async_chat):
         data = "".join(self.buffer)
         self.buffer = []
         self.received(data)
-        
+
     def decode_data(self, data):
         return pickle.loads(bz2.decompress(base64.b64decode(data)))
 
@@ -323,8 +295,7 @@ class ChatProtocol(asynchat.async_chat):
         return base64.b64encode(bz2.compress(pickle.dumps(data, 2)))
 
 
-    
-class ChatTaskServer(TaskServer,asyncore.dispatcher):
+class ChatTaskServer(TaskServer, asyncore.dispatcher):
     """Simple socket-based server for tasks.
     """
     class ChatServerChannel(ChatProtocol):
@@ -352,7 +323,7 @@ class ChatTaskServer(TaskServer,asyncore.dispatcher):
             self.logging.debug("Putting %s, %s", key, value)
             self.taskserver.handle_results(key, value)
             self.push("ok\n")
-            
+
         def command_posts(self, data):
             """Post a list of key-value pairs as results.
 
@@ -371,7 +342,7 @@ class ChatTaskServer(TaskServer,asyncore.dispatcher):
             self.logging.debug("Completed %s", key)
             self.taskserver.handle_completed(key)
             self.push("ok\n")
-            
+
         def command_taskfile(self, data):
             """Retrieve the taskfile.
             """
@@ -380,23 +351,23 @@ class ChatTaskServer(TaskServer,asyncore.dispatcher):
             data = self.encode_data(taskfilecontents)
             self.push(data)
             self.push("\n")
-            
+
         def command_invalid(self, data):
             """Invalid command.
             """
-            self.logging.error("Invalid command: %s", comand)
+            self.logging.error("Invalid command: %s", data)
             self.push("error\n")
-            
+
         def received(self, data):
             """Handles a request of the form:
-            
+
             command,id,[data]
-            
+
             where the data is optional, but the 2nd comma seperator is
             not.
 
             See .command_ methods for accepted commands.
-            
+
             Data is encoded via the pickle and base64 modules.
             """
             command, id, data = data.split(",", 2)
@@ -409,9 +380,8 @@ class ChatTaskServer(TaskServer,asyncore.dispatcher):
              "posts":     self.command_posts,
              "completed": self.command_completed,
              "taskfile":  self.command_taskfile,
-            }.get(command, self.command_invalid)(data)
+             }.get(command, self.command_invalid)(data)
             self.close_when_done()
-            
 
     def __init__(self, tasks, taskfile,
                  host="", port=DEFAULT_CHAT_PORT):
@@ -423,28 +393,25 @@ class ChatTaskServer(TaskServer,asyncore.dispatcher):
         self.bind((host, port))
         self.listen(5)
 
-
     def handle_accept(self):
         channel, address = self.accept()
         self.logging.debug("Accepted connection from %s:%s", *address)
         ChatTaskServer.ChatServerChannel(channel, self)
-
 
     def start(self):
         self.logging.info("Starting server...")
         asyncore.loop()
         self.logging.info("Server stopped")
 
-
     def stop(self):
         self.logging.info("Stopping server...")
         self.close()
-        
 
 
 DEFAULT_CHAT_POLL = 60
 DEFAULT_CHAT_RETRY = 3
 DEFAULT_CHAT_CLIENT_BUFFER = 1024
+
 
 class ChatClient(TaskClient):
     """Simple socket-based client for tasks.
@@ -503,7 +470,6 @@ class ChatClient(TaskClient):
                 self.data = data
             self.handle_close()
 
-    
     def __init__(self,
                  host="localhost", port=DEFAULT_CHAT_PORT,
                  poll=DEFAULT_CHAT_POLL, maxretries=DEFAULT_CHAT_RETRY,
@@ -515,9 +481,8 @@ class ChatClient(TaskClient):
         self.poll = poll
         self.maxretries = maxretries
         self.retry = 0
-        self.results_buffer = [ ]
+        self.results_buffer = []
         self.buffersize = buffersize
-
 
     def channel(self, method, *args):
         channel = ChatClient.ChatClientChannel(self.host, self.port,
@@ -525,7 +490,6 @@ class ChatClient(TaskClient):
         method(channel, *args)
         asyncore.loop()
         return channel.data
-
 
     def start(self, mapfn, reducefn):
         while True:
@@ -551,24 +515,20 @@ class ChatClient(TaskClient):
                 self.logging.info("No work; sleeping...")
                 time.sleep(self.poll)
 
-
     def stop(self):
         self.close()
-
 
     def post_completed(self, key):
         # if buffers aren't empty, flush them
         if self.results_buffer:
             self.post_results()
         self.channel(ChatClient.ChatClientChannel.post_completed, key)
-        
-    
+
     def post_results(self):
         self.logging.debug("Reporting multiple results...")
         buffer = self.results_buffer
         self.results_buffer = []
         self.channel(ChatClient.ChatClientChannel.post_results, buffer)
-        
 
     def post_result(self, key, value):
         # check if we are buffering
@@ -583,18 +543,15 @@ class ChatClient(TaskClient):
             self.logging.debug("Reporting results for %s...", key)
             self.channel(ChatClient.ChatClientChannel.post_result,
                          key, value)
-        
-    
+
     def get_taskfile(self):
         data = self.channel(ChatClient.ChatClientChannel.get_taskfile)
         return data
-    
-
 
 IPC_HANDLERS = {'simple': (ChatTaskServer, ChatClient),
                 }
-    
-    
+
+
 def parse_options():
     parser = OptionParser(usage="""%prog [options] server TASKFILE
 or
@@ -644,7 +601,7 @@ def do_server(taskfile, type, **options):
     started with the specified tasks, taskfile, and type. The server
     first distributes map tasks then reduce tasks and then finalizes
     the results.
-    
+
     Additional options are passed through to the specific server
     constructor.
 
@@ -662,7 +619,7 @@ def do_server(taskfile, type, **options):
         for key in sorted(list(taskserver.final.keys())):
             taskmodule.final(key, taskserver.final[key])
 
-    
+
 def do_client(taskfile, type, **options):
     """Starts the client.
 
@@ -704,7 +661,7 @@ def do_client(taskfile, type, **options):
             f.close()
     # start the task client
     taskclient.start(taskmodule.mapfn, taskmodule.reducefn)
-    
+
 
 def main():
     # parse arguments
@@ -722,7 +679,7 @@ def main():
     {'server': do_server,
      'client': do_client,
      }[mode](taskfile, type, **options)
-    
+
 
 if __name__ == "__main__":
     main()
