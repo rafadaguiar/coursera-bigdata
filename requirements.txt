@@ -1,3 +1,4 @@
 bsddb3==5.3.0
 distribute==0.6.28
+mincemeat==0.1.2
 wsgiref==0.1.2
