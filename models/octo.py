@@ -5,7 +5,6 @@ from __future__ import with_statement
 import asynchat
 import asyncore
 import base64
-import bsddb
 import bz2
 import contextlib
 import imp
@@ -26,6 +25,13 @@ import UserDict
 
 __version__ = "0.1"
 
+try:
+    import bsddb
+except ImportError:
+    try:
+        import bsddb3 as bsddb
+    except ImportError:
+        del sys.modules[__name__]
 
 class Lock(object):
     """Context-able (with-block) wrapper for a lock.
