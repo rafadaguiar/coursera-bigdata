@@ -6,7 +6,7 @@ import glob
 import mincemeat
 import time
 
-text_files = glob.glob('Gutenberg Small/*.txt')
+text_files = glob.glob('hw3data/c0001')
 
 
 def file_contents(file_name):
@@ -32,9 +32,16 @@ def final(key, value):
 
 
 def mapfn(key, value):
+    # mapfn does not get outside imports
+    from models.parser import parse_entry
+    from models.stopwords import allStopWords, replace_all
+
     w = {}
+
     for line in value.splitlines():
-        for word in line.split():
+        d = parse_entry(line)
+        title = replace_all(d['title'])
+        for word in title and word not in allStopWords:
             word = word.lower()
             if word in w.keys():
                 w.update({word: w.get(word)+1})
