@@ -39,3 +39,6 @@ venv
 
 # Local
 .DS_Store
+
+# Data
+data
