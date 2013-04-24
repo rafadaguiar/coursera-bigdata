@@ -6,7 +6,7 @@ import glob
 import mincemeat
 import time
 
-text_files = glob.glob('hw3data/c0001')
+text_files = glob.glob('data/hw3data/c0001')
 
 
 def file_contents(file_name):
