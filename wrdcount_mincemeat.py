@@ -1,4 +1,6 @@
-### wrdcount.py
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 # server
 
 
@@ -6,7 +8,7 @@ import glob
 import mincemeat
 import time
 
-text_files = glob.glob('data/hw3data/c0001')
+text_files = glob.glob('data/hw3data/*')
 
 
 def file_contents(file_name):
@@ -113,5 +115,8 @@ s.datasource = source
 s.mapfn = mapfn
 s.reducefn = reducefn
 results = s.run_server(password="mylla")
-print results
+# print results
+from models.dsort import sort_value, sort_key
+print sort_value(results['Mahmut T. Kandemir'])
+print "----------##-----------"
 print (time.time() - starttime)/60, "min"
