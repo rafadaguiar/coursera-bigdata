@@ -57,8 +57,8 @@ def mapfn(key, value):
                 'wont': 1, 'would': 1, 'wouldnt': 1, 'you': 1, 'youd': 1, 'youll': 1, 'youre': 1, 'youve': 1,
                 'your': 1, 'yours': 1, 'yourself': 1, 'yourselves': 1}
 
-    singleWords = {"a": '',
-                   "I": '',
+    singleWords = {" a ": '',
+                   " I ": '',
                    ",": '',
                    ".": '',
                    "-": ' '}
@@ -76,17 +76,21 @@ def mapfn(key, value):
         d = m.groupdict()
         d['authors'] = d['authors'].split('::')
         return d
-
+    # {'Author':[(word,count)]}
     for line in value.splitlines():
         d = parse_entry(line)
+        author = d['author']
         title = replace_all(d['title'])
         for word in title.split():
             word = word.lower()
-            if word not in allStopWords.keys():
-                if word in w.keys():
-                    w.update({word: w.get(word)+1})
+            if author in w.keys():
+                if word in w[author].keys():
+                    w[author].update({word: w[author][word]+1})
                 else:
-                    w[word] = 1
+                    w[author][word] = 1
+            else:
+                w[author] = {}
+                w[author][word] = 1
     for k in w.keys():
         yield k, w[k]
 
