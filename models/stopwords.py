@@ -22,11 +22,11 @@ allStopWords = {'about': 1, 'above': 1, 'after': 1, 'again': 1, 'against': 1, 'a
                 'wont': 1, 'would': 1, 'wouldnt': 1, 'you': 1, 'youd': 1, 'youll': 1, 'youre': 1, 'youve': 1,
                 'your': 1, 'yours': 1, 'yourself': 1, 'yourselves': 1}
 
-singleWords = {"a": '',
-               "I": '',
-               ",": '',
-               ".": '',
-               "-": ' '}
+singleWords = {" a ": "  ",
+               " I ": "  ",
+               " , ": "  ",
+               " . ": "  ",
+               "-": " "}
 
 
 def replace_all(text):
